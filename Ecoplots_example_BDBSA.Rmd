@@ -14,6 +14,8 @@ output:
     theme: spacelab
     toc: yes
     toc_float: yes
+    self_contained: true
+    github_document: true
 output_dir: "docs"
 documentclass: article
 fontsize: 24pt
@@ -220,9 +222,9 @@ p2
 ```
 
 # Summary
-* In Summary body mass there is variation of body mass with elevation 
+* We found variation in body mass with elevation 
 and 
-* from the coast to inland deserts in the SA region.
+* variation in body mass of mammals from coast to the inland deserts in the SA region.
 
 
 # References
