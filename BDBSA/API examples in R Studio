@@ -1,0 +1,2 @@
+The Biological Databases of South Australia (BDBSA) is South Australia's flora and fauna database. The BDBSA data is structured based on feature types and parameters and archived on the TERN EcoPlots (https://ecoplots.tern.org.au/search). 
+In this example, we show how to extract information from an API query snippet on EcoPlots and explore and visualise data in R studio.  
