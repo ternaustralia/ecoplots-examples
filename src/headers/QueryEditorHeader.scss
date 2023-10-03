@@ -1,0 +1,54 @@
+@import "bootstrap/scss/_functions";
+@import "bootstrap/scss/_variables";
+@import "bootstrap/scss/mixins/_breakpoints";
+@import "tern-react/dist/scss/colors.module.scss";
+
+// TODO: Make this select responsive
+.parameter-select {
+  color: #00565d;
+  margin-left: auto !important;
+  margin-top: 1em !important;
+  width: 30%;
+  z-index: 700;
+  font-size: 1rem;
+}
+
+.main-header .navbar {
+  color: #6eb3a6;
+  width: 100%;
+
+  .navbar-text {
+    white-space: nowrap;
+
+    .biologo {
+      display: flex;
+
+      .svg-icon {
+        margin-right: 0.5rem;
+      }
+    }
+  }
+
+  .nav-item a:focus {
+    box-shadow: 0 0 black;
+  }
+}
+
+.dropdown-item.active,
+.dropdown-item:active {
+  color: #fff;
+  text-decoration: none;
+  background-color: white !important;
+}
+
+.inactive {
+    color: $green-light !important;
+    text-decoration: none;
+}
+
+.cust-hover:hover {
+    cursor: pointer;
+  }
+.comming-soon {
+  color: $green-dark;
+}
