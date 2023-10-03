@@ -21,6 +21,9 @@ export default function App() {
         <NavLink href="https://raw.githack.com/ternaustralia/ecoplots-examples/arunherb-Ecoplots-BDBSA/Ecoplots_example.html" target="_blank">
           Example 1 BDBSA
         </NavLink>
+        <NavLink href="https://raw.githack.com/ternaustralia/ecoplots-examples/arunherb-Ecoplots-BDBSA/Ecoplots_example.html" target="_blank">
+          Example 2 BDBSA
+        </NavLink>
       </div>
       {/* </NavItem> */}
       <div className="app-footer">
