@@ -1,14 +1,22 @@
-// .yasgui .autocompleteWrapper {
-//   display: none !important;
-// }
-// .yasgui .tabContextButton {
-//   // display: none !important;
-//   margin-bottom: 1%;
-// }
-// .yasgui .tabPanel {
-//   margin-top: 1%;
-// }
+@import "tern-react/dist/scss/colors.module.scss";
 
 .editor {
   padding: 3rem;
+}
+
+.scripts {
+  // width: 80%;
+  // margin-left: 23%;
+  // margin-right: 23%;
+  // margin-top: 3%;
+  margin: 3% 20% 3% 20%;
+}
+
+.examples {
+  padding: 4%;
+}
+
+.second-link {
+  margin-left: 2%;
+  color: $blue-dark;
 }

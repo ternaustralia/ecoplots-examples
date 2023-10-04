@@ -3,16 +3,6 @@
 @import "bootstrap/scss/mixins/_breakpoints";
 @import "tern-react/dist/scss/colors.module.scss";
 
-// TODO: Make this select responsive
-.parameter-select {
-  color: #00565d;
-  margin-left: auto !important;
-  margin-top: 1em !important;
-  width: 30%;
-  z-index: 700;
-  font-size: 1rem;
-}
-
 .main-header .navbar {
   color: #6eb3a6;
   width: 100%;
@@ -49,6 +39,4 @@
 .cust-hover:hover {
     cursor: pointer;
   }
-.comming-soon {
-  color: $green-dark;
-}
+
