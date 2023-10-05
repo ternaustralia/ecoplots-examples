@@ -1,0 +1,311 @@
+---
+title: "Williams Wet Tropics Vertebrate dataset"
+author: "Arun Singh Ramesh^[TERN, a.singhramesh@uq.edu.au]"
+date: "29/09/2023"
+output:
+  html_document:
+    code_folding: show
+    collapse: no
+    df_print: paged
+    fig_caption: yes
+    fig_height: 8
+    fig_width: 12
+    highlight: textmate
+    theme: cerulean
+    toc: yes
+    toc_float: yes
+    self_contained: true
+    github_document: true
+output_dir: "docs"
+documentclass: article
+fontsize: 24pt
+mainfont: Arial
+mathfont: LiberationMono
+monofont: DejaVu Sans Mono
+classoption: a4paper
+---
+```{r setup, include=FALSE, cache=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## EcoPlots API example
+
+The example code shown here is designed to give you an experience at downloading, analyzing and visualising a dataset that is archived on the TERN EcoPlots https://ecoplots-test.tern.org.au/. 
+EcoPlots contains plot-based ecology data from different sources to enable integrated search and access to data based on different jurisdiction, data sources, feature types, parameters and temporal extent. 
+
+# General preparations
+### **Set your working directory**
+
+This gets you started with storing your files and r scripts.
+
+```{r working directory}
+#setwd("C:/Users/uqasin21") # Note that your path will be different
+```
+### **Load libraries**
+If you do not have the following packages downloaded, you can install them using the function `install.packages`, with the name of the package as an argument in quotations.
+
+
+```{r load, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(httr)
+library(ggpubr)
+```
+
+# **Load and explore the data**
+
+At this point, you should have your Ecoplots search query from the EcoPlots API Query dash board (https://ecoplots-test.tern.org.au/discovery).
+
+***Important*** Make sure to download your API key from the website (https://account-test.tern.org.au/authenticated_user/apikeys)
+Once you have your API code extracted you can start using the query request
+
+```{r Api, results='markup', echo=FALSE}
+library(httr)
+
+headers = c(
+  'X-Api-Key' = 'your-api-key',
+  'Content-Type' = 'application/json'
+)
+
+body = '{
+  "query": {
+    "dataset": [
+      "http://linked.data.gov.au/dataset/wet-tropics-vertebrate"
+    ],
+    "feature_type": [
+      "http://linked.data.gov.au/def/tern-cv/2361dea8-598c-4b6f-a641-2b98ff199e9e"
+    ],
+    "observed_property": [
+      "http://linked.data.gov.au/def/tern-cv/56195246-ec5d-4050-a1c6-af786fbec715",
+      "http://linked.data.gov.au/def/tern-cv/1466cc29-350d-4a23-858b-3da653fd24a6"
+    ]
+  }
+}';
+
+res <- VERB("POST", url = "https://ecoplots-test.tern.org.au/api/v1.0/data/williams-wet-tropics-vertebrate-database?dformat=csv", body = body, add_headers(headers))
+
+
+```
+
+# **Explore your data frame and do simple stats**
+
+First step is to create a data frame, explore and organise it to suite your research needs.
+In this example file, we have occurrence of vertebrates from the Australian Wet Tropics Bioregion, compiled by Williams, 2006. 
+```{r  dataframe, results='markup', eval=TRUE, message=FALSE, warning=FALSE}
+#create a data frame from the API response
+df<-read.table(text = content(res, 'text'), sep =",", header = TRUE, stringsAsFactors = FALSE)
+
+```
+
+
+```{r  stats0, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+#data exploration and wrangling
+head(df)
+tail(df)
+```
+As you can see that there are over 13,000 observations providing information on the animal occurrence coordinates, scientific name and their conservation status. 
+
+We need to store the scientific name and regional government conservation status as a factor.
+
+```{r stats1, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+#data exploration and wrangling
+df$scientificName<- as.factor(df$scientificName)
+df$regionalGovermentConservationStatus<- as.factor(df$regionalGovermentConservationStatus)
+
+summary(df$regionalGovermentConservationStatus)
+```
+
+From this we see that there are four levels of Conservation Status (Endanngered Wildlife, Leaf Concern Wildlife, Special Least Concern Wildlife and N/A). 
+
+# **Data wrangling and Visualisation-1: Conservation Status **
+Let us visualize them and plot on a map to see how they are distributed within the bioregion. 
+
+```{r stats2, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+#data exploration and wrangling
+plot(df$regionalGovermentConservationStatus)
+
+#mapping 
+# Map
+library(ozmaps)
+library(sf)
+aus <- ozmap_data(data = "states") # create a map layer with state boundaries 
+
+#Map based on Conservation status
+m1<- ggplot() +
+  geom_sf(data = aus, fill = "#FBFBEF") +
+  geom_point(
+    data = df,
+    mapping = aes(
+      x = longitude_Degree,
+      y = latitude_Degree,
+      colour = regionalGovermentConservationStatus),
+    alpha = 0.5)+
+  theme_void() +
+  coord_sf(ylim = c(-11, -22),
+           xlim = c(141, 151))+ labs(x = expression(""), y = expression(""), colour="Conservation Status")+ theme_bw()
+
+m1+ scale_color_manual(values=c("red", "steelblue", "grey2", "#CE5832"))+theme(axis.text.y = element_text(colour = "black", size = 14, face = "bold"), 
+          axis.text.x = element_text(colour = "black", face = "bold", size = 14), 
+          legend.text = element_text(size = 12, face ="bold", colour ="black"), 
+          legend.position = "top", axis.title.y = element_text(face = "bold", size = 14), 
+          axis.title.x = element_text(face = "bold", size = 14, colour = "black"), 
+          legend.title = element_text(size = 14, colour = "black", face = "bold"), 
+          panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+          legend.key=element_blank())
+
+```
+
+As you can see from the map there are many hits for the Conservation status 'Least concern wildlife', and at least 500 odd hits point to 'Endangered wildlife' in the map. There are also significant proportion of the data with no Conservation Status (listed as N/A). 
+
+# **Data wrangling and Visualisation-2: Species counts**
+
+Let us create a new data frame with count of species occurrences and conservation status and visualize the levels of occurrence.
+```{r stats3, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+df2<- df%>% group_by(scientificName, regionalGovermentConservationStatus) %>%
+  summarise(no_rows = length(scientificName))
+
+hist(df2$no_rows)
+
+```
+
+Here it appears that mojortity of the dataset contains species hits below 100 counts. 
+Let us subset two dataframes- one of counts >200 and one with count <20 for example.
+
+```{r stats4, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+# high species occurrence ones
+df3<- df2 %>% filter(no_rows > 200)
+
+h1<- ggplot(df3, aes(x=no_rows, y=scientificName))+
+  geom_bar(stat = 'identity', fill = "#a84830")+theme(axis.text.y = element_text(angle = 10, hjust = 1))+labs(y="Scientific name",x="count")
+
+h1+ theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold"), 
+          axis.text.x = element_text(colour = "black", face = "bold", size = 12), 
+          legend.text = element_text(size = 12, face ="bold", colour ="black"), 
+          legend.position = "none", axis.title.y = element_text(face = "bold", size = 12), 
+          axis.title.x = element_text(face = "bold", size = 12, colour = "black"), 
+          legend.title = element_text(size = 12, colour = "black", face = "bold"), 
+          panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+          legend.key=element_blank())
+
+
+#let us fill this with the conservation status
+h2<- ggplot(df3, aes(x=no_rows, y=scientificName, fill=regionalGovermentConservationStatus))+
+  geom_bar(stat = 'identity')+theme(axis.text.y = element_text(angle = 10, hjust = 1))+labs(y="Scientific name",x="count", fill="")
+
+h2+ scale_fill_manual(values=c("red", "steelblue", "grey2", "#CE5832"))+theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold"), 
+          axis.text.x = element_text(colour = "black", face = "bold", size = 12), 
+          legend.text = element_text(size = 12, face ="bold", colour ="black"), 
+          legend.position = "top", axis.title.y = element_text(face = "bold", size = 12), 
+          axis.title.x = element_text(face = "bold", size = 12, colour = "black"), 
+          legend.title = element_text(size = 12, colour = "black", face = "bold"), 
+          panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+          legend.key=element_blank())
+
+```
+
+We observe that there are not many endangered species (other than <i> Casuarius casuarius johnsonii </i>) in this smaller dataset with species counts of >200.  
+
+Let us see how many species are present with really low counts.
+```{r lowcount, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+# high species occurrence ones
+lowcounts<- df2 %>% filter(no_rows < 20)
+
+
+l1<- ggplot(lowcounts, aes(x=no_rows, y=scientificName))+
+  geom_bar(stat = 'identity', fill = "#a84830")+theme(axis.text.y = element_text(angle = 10, hjust = 1))+labs(y="Scientific name",x="count")
+
+l1+ theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold"), 
+          axis.text.x = element_text(colour = "black", face = "bold", size = 12), 
+          legend.text = element_text(size = 12, face ="bold", colour ="black"), 
+          legend.position = "none", axis.title.y = element_text(face = "bold", size = 12), 
+          axis.title.x = element_text(face = "bold", size = 12, colour = "black"), 
+          legend.title = element_text(size = 12, colour = "black", face = "bold"), 
+          panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+          legend.key=element_blank())
+
+
+#let us fill this with the conservation status
+l2<- ggplot(lowcounts, aes(x=no_rows, y=scientificName, fill=regionalGovermentConservationStatus))+
+  geom_bar(stat = 'identity')+theme(axis.text.y = element_text(angle = 10, hjust = 1))+labs(y="Scientific name",x="count", fill="")
+
+l2+ scale_fill_manual(values=c("red", "steelblue", "grey2", "#CE5832"))+theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold"), 
+          axis.text.x = element_text(colour = "black", face = "bold", size = 12), 
+          legend.text = element_text(size = 12, face ="bold", colour ="black"), 
+          legend.position = "top", axis.title.y = element_text(face = "bold", size = 12), 
+          axis.title.x = element_text(face = "bold", size = 12, colour = "black"), 
+          legend.title = element_text(size = 12, colour = "black", face = "bold"), 
+          panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+          legend.key=element_blank())
+
+```
+
+As you can see that majority of the dataset contains low counts from Least Concern wildlife. 
+
+Let us now create a map of species occurrence based on different counts ordered as: 'Low'- 0 - 249 counts; 'Medium'- 250-500 counts; and 'High'- >500 counts.   
+
+```{r stats5, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+# make a data frame with high and low occurrence to map
+df5<- df%>% group_by(scientificName, regionalGovermentConservationStatus) %>%
+  reframe(count = length(scientificName), 
+                             latitude=latitude_Degree,
+                             longitude=longitude_Degree)
+
+# Creating a factor corresponding to species distribution counts with labels
+df5$occurrence = cut(df5$count, 3, labels=c('Low', 'Medium', 'High'))
+table(df5$occurrence)
+
+#Map based on proportional count status
+m1<- ggplot() +
+  geom_sf(data = aus, fill = "#FBFBEF") +
+  geom_point(
+    data = df5,
+    mapping = aes(
+      x = longitude,
+      y = latitude,
+      colour = occurrence),
+    alpha = 0.5)+
+  theme_void() +
+  coord_sf(ylim = c(-11, -22),
+           xlim = c(141, 151))+ labs(x = expression(""), y = expression(""), colour="counts")+ theme_bw()
+
+m1+ scale_fill_manual(values=c("red", "steelblue", "grey2", "#CE5832"))+
+theme(axis.text.y = element_text(colour = "black", size = 14, face = "bold"), 
+axis.text.x = element_text(colour = "black", face = "bold", size = 14), 
+legend.text = element_text(size = 12, face ="bold", colour ="black"), 
+legend.position = "top", axis.title.y = element_text(face = "bold", size = 14), 
+axis.title.x = element_text(face = "bold", size = 14, colour = "black"), 
+legend.title = element_text(size = 14, colour = "black", face = "bold"), 
+panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+legend.key=element_blank())
+
+#Plotting the proportion of occurrence counts for each Conservation Status
+
+b1<- ggplot(df5, aes(x = regionalGovermentConservationStatus, fill = occurrence)) + 
+  geom_bar(aes(y = after_stat(count / sum(count)))) +
+  scale_y_continuous(labels = scales::percent)+labs(y="Proportion of counts",x="Conservation Status", fill="count")
+
+b1+scale_fill_manual(values=c("peachpuff", "steelblue", "#CE5832"))+
+  theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold"), 
+axis.text.x = element_text(colour = "black", face = "bold", size = 12), 
+legend.text = element_text(size = 12, face ="bold", colour ="black"), 
+legend.position = "top", axis.title.y = element_text(face = "bold", size = 12), 
+axis.title.x = element_text(face = "bold", size = 12, colour = "black"), 
+legend.title = element_text(size = 12, colour = "black", face = "bold"), 
+panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+legend.key=element_blank())  
+
+```
+
+From the above map we can see that the data set contains high counts of 'Endangered wildlife', whereas for 'Least concern wildlife' the medium and high counts are more are less proportional and for the 'Special least concern' there is really low count. This is probably accounted for by the species  <i> Casuarius casuarius johnsonii </i> (endangered) and <i> Monarcha melanopsi </i> (special least concern).
+
+
+# Summary
+* We extracted a response using an API query for the Williams Wet Tropics dataset example from the TERN EcoPlots 
+* We observed using simple steps how we can extract information of species occurrence. 
+* We found how the dataset was accounted for differences in species and their conservation status and we finally visualised them on a map.
+
+# References
+
+1. [TERN EcoPlots- Terrestrial Ecosystem Research Network.](https://ecoplots.tern.org.au/)
+
+2. [Vertebrates of the Wet Tropics Rainforests of Australia: Species Distributions and Biodiversity.Cooperative Research Centre for tropical Rainforest Ecology and Management. Rainforest CRC, Cairns, Australia (282 pp.)](https://rainforest-crc.jcu.edu.au/publications/vertebrate_distributions_full.pdf)
