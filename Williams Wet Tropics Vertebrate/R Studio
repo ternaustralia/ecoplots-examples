@@ -1,0 +1,3 @@
+The 'Williams Wet Tropics Vertebrate' data set contains raw species occurrence records for approximately 144 species of vertebrates of the 350 odd vertebrate species that occur in the rainforests of the Wet Tropics
+bioregion. The data is structured based on feature types and parameters and archived on the TERN EcoPlots (https://ecoplots.tern.org.au/search). 
+In this examples, we show how to extract information from an API query snippet on EcoPlots and explore and visualise data in R studio.
