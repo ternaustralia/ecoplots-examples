@@ -1,0 +1,187 @@
+---
+title: "EcoPlotsAPI-GeoJson"
+author: "Arun Singh Ramesh^[TERN, a.singhramesh@uq.edu.au]"
+date: "29/09/2023"
+output:
+  html_document:
+    code_folding: show
+    collapse: no
+    df_print: paged
+    fig_caption: yes
+    fig_height: 8
+    fig_width: 12
+    highlight: textmate
+    theme: spacelab
+    toc: yes
+    toc_float: yes
+    self_contained: true
+    github_document: true
+output_dir: "docs"
+documentclass: article
+fontsize: 24pt
+mainfont: Arial
+mathfont: LiberationMono
+monofont: DejaVu Sans Mono
+classoption: a4paper
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+```
+## EcoPlots API- GeoJson for BDBSA
+
+The example code shown here is designed to give you an experience at downloading, analyzing and visualising a dataset in GeoJson format that is archived on the TERN EcoPlots https://ecoplots-test.tern.org.au/. 
+
+EcoPlots contains plot-based ecology data from different sources to enable integrated search and access to data based on different jurisdiction, data sources, feature types, parameters and temporal extent. 
+
+# General preparations
+### **Set your working directory**
+
+This gets you started with storing your files and r scripts.
+
+```{r working directory}
+#setwd("C:/Users/uqasin21") # Note that your path will be different
+```
+### **Load libraries**
+If you do not have the following packages downloaded, you can install them using the function `install.packages`, with the name of the package as an argument in quotations.
+
+
+```{r load, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+
+library(httr)
+library(jsonlite)
+library(geojsonsf)
+library(sf)
+library(tidyverse)
+library(ozmaps)
+```
+
+# **Load and explore the data**
+
+At this point, you should have your Ecoplots search query from the EcoPlots API Query dash board (https://ecoplots-test.tern.org.au/discovery).
+
+***Important*** Make sure to download your API key from the website (https://account-test.tern.org.au/authenticated_user/apikeys)
+Once you have your API code extracted you can start using the query request
+
+```{r API, results='hide', eval=TRUE, message=FALSE, warning=FALSE}
+#Geojson example
+
+library(httr)
+
+headers = c(
+  'X-Api-Key' = 'your-api-key',
+  'Content-Type' = 'application/json'
+)
+
+body = '{
+  "query": {
+    "dataset": [
+      "http://linked.data.gov.au/dataset/bdbsa"
+    ],
+    "feature_type": [
+      "http://linked.data.gov.au/def/tern-cv/e16f8309-5db3-4efb-ba4d-a352fb3dcd94"
+    ],
+    "observed_property": [
+      "http://linked.data.gov.au/def/tern-cv/56195246-ec5d-4050-a1c6-af786fbec715",
+      "http://linked.data.gov.au/def/tern-cv/fc2dcb5b-94a5-440f-9104-efaa640246cc"
+    ]
+  }
+}';
+
+res <- VERB("POST", url = "https://ecoplots-test.tern.org.au/api/v1.0/data/bdbsa?dformat=geojson", body = body, add_headers(headers))
+
+
+```
+
+# **Extract your contents from raw response using sf into a dataframe **
+
+First step is extract contents stored as raw response and explore the data frame. In this example we have used the mammal occurrence records from the BDBSA dataset using a query in EcoPlots.  
+```{r  geojson, results='hide', eval=TRUE, message=FALSE, warning=FALSE}
+
+# data frame features extraction
+# Extract GeoJSON content
+data <- content(res, as="text")
+
+# Convert GeoJSON content to an sf object
+sf_data <- st_read(data)
+```
+The raw respone has a vector with character files stored in the sf_data data frame object.
+
+# **Map occurrence records on Ozmap **
+Let us visualise the raw occurrence data from BDBSA that we extracted using the geojson API query
+
+```{r  geojson1, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+
+#mapping 
+# Map
+library(ozmaps)
+aus <- ozmap_data(data = "states") # create a map layer with state boundaries 
+#visualise raw occurrence into a map
+m1<- ggplot(sf_data) +
+  stat_sf_coordinates()+
+  geom_sf(data = aus, fill = "#FBFBEF")+
+  geom_point(
+    aes(geometry = geometry,color="",
+        xmin = after_stat(x) - 0.1,
+        xmax = after_stat(x) + 0.1,
+        y = after_stat(y),
+        height = 0.02),
+    stat = "sf_coordinates"
+  )+ labs(x = expression(""), colour = "raw occurrence", y = expression(""))+ theme_bw()
+
+m1+ theme(axis.text.y = element_text(colour = "black", size = 14, face = "bold"), 
+          axis.text.x = element_text(colour = "black", face = "bold", size = 14), 
+          legend.text = element_text(size = 12, face ="bold", colour ="black"), 
+          legend.position = "top", axis.title.y = element_text(face = "bold", size = 14), 
+          axis.title.x = element_text(face = "bold", size = 14, colour = "black"), 
+          legend.title = element_text(size = 14, colour = "black", face = "bold"), 
+          panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+          legend.key=element_blank())
+
+```
+
+Now you can see that the raw occurrence mammal records from BDBSA dataset. Let us convert the mammal records using site as a factor, and then visualise on a map.
+
+
+```{r  geojson2, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+
+# convert the site into a factor
+sf_data$site<- as.factor(sf_data$site)
+#visualise occurrence by Site on a map
+m1<- ggplot(sf_data) +
+  stat_sf_coordinates()+
+  geom_sf(data = aus, fill = "#FBFBEF")+
+  geom_point(
+    aes(geometry = geometry,color=site,
+        xmin = after_stat(x) - 0.1,
+        xmax = after_stat(x) + 0.1,
+        y = after_stat(y),
+        height = 0.02, alpha=0.8),
+    stat = "sf_coordinates"
+  )+ labs(x = expression(""), colour = "site", y = expression(""))+ theme_bw()
+
+m1+ theme(axis.text.y = element_text(colour = "black", size = 14, face = "bold"), 
+          axis.text.x = element_text(colour = "black", face = "bold", size = 14), 
+          legend.text = element_text(size = 12, face ="bold", colour ="black"), 
+          legend.position = "none", axis.title.y = element_text(face = "bold", size = 14), 
+          axis.title.x = element_text(face = "bold", size = 14, colour = "black"), 
+          legend.title = element_text(size = 14, colour = "black", face = "bold"), 
+          panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+          legend.key=element_blank())
+
+
+
+```
+
+# Summary
+* In Summary one can extract species occurrence records of mammals from BDBSA using a GeoJson API query 
+and 
+* plot the species occurrence records on a map using some simple code snippets as above.
+
+We can create multiple faceted search query on TERN EcoPlots using the API and with some of the above steps extract information to suite your research questions. 
+
+# References
+
+[TERN EcoPlots- Terrestrial Ecosystem Research Network.](https://ecoplots.tern.org.au/)
+
+[The Biological Databases of South Australia (BDBSA)](https://www.environment.sa.gov.au/topics/science/information-and-data/biological-databases-of-south-australia)
