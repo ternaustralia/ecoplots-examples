@@ -2,7 +2,7 @@ import { version } from "./package.json";
 
 export const CONFIG = {
   MENU: {
-    env: "test",
+    env: "prod",
   },
   UI_VERSION: version,
 };
