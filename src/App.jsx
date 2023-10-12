@@ -50,12 +50,12 @@ export default function App() {
               <List>
                 <li>
                   <a href="https://raw.githack.com/ternaustralia/ecoplots-examples/develop/R%20Studio/BDBSA/Ecoplots_example_BDBSA.html" target="_blank" >Example CSV</a>
-                  {/* <a href="https://github.com/ternaustralia/ecoplots-examples/blob/develop/Ecoplots_example_BDBSA.Rmd" target="_blank" className='second-link'>(R Markdown)</a> */}
+                  <a href="https://github.com/ternaustralia/ecoplots-examples/blob/develop/R%20Studio/BDBSA/Ecoplots_example_BDBSA.Rmd" target="_blank" className='second-link'>(source code)</a>
                   <br />
                 </li>
                 <li>
                   <a href="https://raw.githack.com/ternaustralia/ecoplots-examples/develop/R%20Studio/BDBSA/Ecoplots_GeoJson_BDBSA.html" target="_blank">Example GeoJSON</a>
-                  {/* <a href="https://github.com/ternaustralia/ecoplots-examples/blob/develop/BDBSA/Ecoplots_GeoJson_BDBSA.Rmd" target="_blank" className='second-link'>(R Markdown)</a> */}
+                  <a href="https://github.com/ternaustralia/ecoplots-examples/blob/develop/R%20Studio/BDBSA/Ecoplots_GeoJson_BDBSA.Rmd" target="_blank" className='second-link'>(source code)</a>
                 </li>
               </List>
               <br />
@@ -69,13 +69,41 @@ export default function App() {
               <List>
                 <li>
                   <a href="https://raw.githack.com/ternaustralia/ecoplots-examples/develop/R%20Studio/Williams%20Wet%20Tropics%20Vertebrates/Ecoplots_example_Williams.html" target="_blank" >Example CSV</a>
+                  <a href="https://github.com/ternaustralia/ecoplots-examples/blob/develop/R%20Studio/Williams%20Wet%20Tropics%20Vertebrates/Ecoplots_example_Williams_Vertebrates.Rmd" target="_blank" className='second-link'>(source code)</a>
                 </li>
               </List>
             </div>
           </TabPane>
           <TabPane tabId="2">
             <div className='examples'>
-              <p>Coming soon!</p>
+              <p>In these examples, we show how to extract information from the EcoPlots API and explore and visualise data using Python (notebooks).</p>
+              <p>
+                In order to make API requests to the API, you will need your own API Key. Details on how to request an API Key is available on the &nbsp;
+                <a href="https://ternaus.atlassian.net/wiki/spaces/TDSAG/pages/2633728070/Testing+EcoPlots+API" target="_blank" >EcoPlots API Guide</a>.
+              </p>
+              <br />
+              <h4>TERN Ecosystem Processes</h4>
+              <p>
+                TERN’s Ecosystem Processes database contains detailed environmental data collected from monitoring TERN operated sites located in significant
+                Australian biomes, spanning a wide range of environmental conditions. TERN Ecosystem Processes data are derived by data collection methods that span
+                from periodic field surveys and in-situ sensors operated continuously at a local scale.
+              </p>
+              <br />
+              <List>
+                <li>
+                  <a href="https://raw.githack.com/ternaustralia/ecoplots-examples/develop/Python/Tern-Ecosystem-Processes/Biomass_CSV.html" target="_blank" >Biomass Example CSV</a>
+                  <a href="https://github.com/ternaustralia/ecoplots-examples/blob/develop/Python/Tern-Ecosystem-Processes/Biomass_CSV.ipynb" target="_blank" className='second-link'>(source code)</a>
+                  <br />
+                </li>
+                <li>
+                  <a href="https://raw.githack.com/ternaustralia/ecoplots-examples/develop/Python/Tern-Ecosystem-Processes/Biomass_GeoJSON.html" target="_blank">Biomass Example GeoJSON</a>
+                  <a href="https://github.com/ternaustralia/ecoplots-examples/blob/develop/Python/Tern-Ecosystem-Processes/Biomass_GeoJSON.ipynb" target="_blank" className='second-link'>(source code)</a>
+                </li>
+                <li>
+                  <a href="https://raw.githack.com/ternaustralia/ecoplots-examples/develop/Python/Tern-Ecosystem-Processes/BirdOccurrence_CSV.html" target="_blank">Bird Occurrence Example CSV</a>
+                  <a href="https://github.com/ternaustralia/ecoplots-examples/blob/develop/Python/Tern-Ecosystem-Processes/BirdOccurrence_CSV.ipynb" target="_blank" className='second-link'>(source code)</a>
+                </li>
+              </List>
             </div>
           </TabPane>
         </TabContent>
