@@ -1,0 +1,235 @@
+---
+title: "EcoPlotsAPI"
+author: "Arun Singh Ramesh^[TERN, a.singhramesh@uq.edu.au]"
+date: "28/09/2023"
+output:
+  html_document:
+    code_folding: show
+    collapse: no
+    df_print: paged
+    fig_caption: yes
+    fig_height: 8
+    fig_width: 12
+    highlight: textmate
+    theme: spacelab
+    toc: yes
+    toc_float: yes
+    self_contained: true
+    github_document: true
+output_dir: "docs"
+documentclass: article
+fontsize: 24pt
+mainfont: Arial
+mathfont: LiberationMono
+monofont: DejaVu Sans Mono
+classoption: a4paper
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## EcoPlots API example
+
+The example code shown here is designed to give you an experience at downloading, analyzing and visualising any dataset archived on the TERN EcoPlots https://ecoplots.tern.org.au/. 
+EcoPlots contains plot-based ecology data from different sources to enable integrated search and access to data based on different jurisdiction, data sources, feature types, parameters and temporal extent. 
+
+# General preparations
+### Set your working directory
+
+This gets you started with storing your files and r scripts.
+
+```{r working directory}
+#setwd("C:/Users/uqasin21") # Note that your path will be different
+```
+### Load libraries
+If you do not have the following packages downloaded, you can install them using the function `install.packages`, with the name of the package as an argument in quotations.
+
+
+```{r load, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(httr)
+library(ggpubr)
+library(gridExtra)
+```
+
+# Load and explore the data
+
+At this point, you should have your Ecoplots search query from the EcoPlots API Query dash board (https://ecoplots.tern.org.au/discovery).
+
+***Important*** Make sure to download your API key from the website (https://account-test.tern.org.au/authenticated_user/apikeys)
+Once you have your API code extracted you can start using the query request
+
+```{r API, results='hide', eval=TRUE, message=FALSE, warning=FALSE}
+headers = c(
+  'X-Api-Key' = 'your-api-key',
+  'Content-Type' = 'application/json'
+)
+
+body = '{
+  "query": {
+    "dataset": [
+      "http://linked.data.gov.au/dataset/bdbsa"
+    ],
+    "observed_property": [
+      "http://linked.data.gov.au/def/tern-cv/fc2dcb5b-94a5-440f-9104-efaa640246cc",
+      "http://linked.data.gov.au/def/tern-cv/56195246-ec5d-4050-a1c6-af786fbec715",
+      "http://linked.data.gov.au/def/tern-cv/800cf33b-1c44-435d-89bd-5d80e3e8aba1"
+    ],
+    "feature_type": [
+      "http://linked.data.gov.au/def/tern-cv/226a127b-7248-476a-84ad-0412a5e3af52"
+    ]
+  }
+}';
+
+res <- VERB("POST", url = "https://ecoplots-test.tern.org.au/api/v1.0/data/bdbsa?dformat=csv", body = body, add_headers(headers))
+
+cat(content(res, 'text'))
+
+df <- read.table(text = content(res, 'text'), sep =",", header = TRUE, stringsAsFactors = FALSE)
+
+
+```
+
+# **Explore your data frame and do simple stats**
+
+First step is to explore the data frame and organise it to suite your research needs. In this example dataset, I have queried results for body mass of mammals from the BDBSA data source. Let us explore and see what infornation can we derive.
+```{r  stats0, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+#data exploration and wrangling
+head(df)
+tail(df)
+summary(df) 
+
+
+```
+
+It looks like the dataset has many vectors either as a categorical or numeric vector. We need to organise the dataframe and store the categorical values as a factor. 
+
+```{r  stats1, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+
+#convert your numerical values to numeric and categorical values into factor levels
+df$bodyMass_gram<- as.numeric(df$bodyMass_gram)
+df$scientificName<- as.factor(df$scientificName)
+
+# visualise the general distribution of your response variable (body mass)
+hist(df$bodyMass_gram, breaks = 150)
+
+```
+It looks like majority of the dataset contains body mass distribution of mammals below 300g. 
+Here we subset the data frame to represent body mass below 50g for example and then see if the distribution is normal.
+
+
+```{r  stats2, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+#subset
+dflow<- subset(df, bodyMass_gram<=50)
+hist(dflow$bodyMass_gram, breaks = 100)
+
+```
+
+Now we have a new dataframe with 6703 hits. And the dataset appears to be a better representation of body size distribution.
+
+# **Data Visualisation**
+For the first instance, let us visualise a relation between body mass with elevation
+
+```{r  vis1, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+
+plot(dflow$bodyMass_gram~dflow$altitude_Metre)
+
+```
+
+As you can see the data is scattered all over with higher point clouds at lower elevation sites. 
+Let visualise with a regression line and see how the slope of the relationship changes with elevation.
+
+```{r  vis2, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+
+#fancy data visualisation
+library(ggpubr)
+
+l1<-ggscatter(dflow, x = "altitude_Metre", y = "bodyMass_gram", 
+              color = "#C33453", pch=19, size=5,alpha=0.8)+ggtitle("")+ 
+  stat_cor(aes(label = paste(..rr.label.., ..p.label.., sep = "~`,`~")),label.y = 45, label.x = 700, size=4)+stat_smooth(se=TRUE, formula = y~x, color="grey")+
+  stat_regline_equation(label.y =47 , label.x = 700, size=4)+
+  xlab(expression(Elevation~(meter~a.s.l.)))+ ylab(expression(Body~Mass~("g")))+ theme_bw()
+
+l1+ theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold"), 
+          axis.text.x = element_text(colour = "black", face = "bold", size = 12), 
+          legend.text = element_text(size = 12, face ="bold", colour ="black"), 
+          legend.position = "top", axis.title.y = element_text(face = "bold", size = 14), 
+          axis.title.x = element_text(face = "bold", size = 14, colour = "black"), 
+          legend.title = element_text(size = 14, colour = "black", face = "bold"), 
+          panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+          legend.key=element_blank())
+```
+
+As you can see there is a weak but negative slope, suggesting that majority of large mammals are found in the lower elevation sites.
+
+# **Body mass summary at Site/Species level**
+
+Now that we have a relation of body mass with elevation. Let us normalise the data and calculate the trends in body size across different bioregions. In this example we use two contrasting biomes- a coast versus an inland desert.
+
+```{r  vis3, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+
+#aggregate biomass by Species, Project and Site
+dflow$projectTitle<- as.factor(dflow$projectTitle)
+dflow$siteName<- as.factor(dflow$siteName)
+
+library(tidyverse)
+library(gridExtra)
+
+dflow%>%
+  group_by(siteName,projectTitle,scientificName)%>%
+  summarize(bodyMass_gram=sum(bodyMass_gram,na.rm=TRUE))->summed_species_level_biomass
+
+# let us see the body mass averaged for each species 
+with(summed_species_level_biomass, tapply(bodyMass_gram, c(scientificName), mean))
+
+#subset data for the project on Eyre Peninsula (coast) in SA
+
+Eyre_Peninsula<- subset(summed_species_level_biomass, projectTitle=="Southern Eyre Peninsula")
+
+#plot species biomass by Project location (one in coast versus inland desert)
+#Lets look at the Coast
+plot1<-ggplot(Eyre_Peninsula, aes(x = scientificName, y = bodyMass_gram))+ggtitle("Eyre Peninsula")+geom_col(position="dodge")+labs(x="Species",y="Body mass (g)")
+p1<- plot1+theme_bw() +theme(axis.text.x = element_text(angle = 45, hjust = 1))
+p1
+
+
+```
+
+There appears to be fewer species recorded from this Coast with the species <i> Mus musculus</i> accounting for the highest body mass.
+
+Let us see what body sizes we observe for mammals within the Great Sandy desert
+
+```{r  vis4, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+
+#subset data for the Project on Sandy Desert in SA
+
+Sandy_desert<-subset(summed_species_level_biomass,projectTitle=="Sandy Desert")
+
+#plot species biomass by Project location (inland desert)
+
+#Sandy desert
+plot2<-ggplot(Sandy_desert, aes(x = scientificName, y = bodyMass_gram))+geom_col(position="dodge")+labs(x="Species",y="Body mass (g)")
+p2<- plot2+theme_bw() +theme(axis.text.x = element_text(angle = 45, hjust = 1))
+p2
+
+```
+
+# Summary
+* We queried a dataset from the [TERN EcoPlots](https://ecoplots.tern.org.au/) from the BDBSA data source using the EcoPLots API query request.
+* With a few simple steps we managed to input a dataframe in R and observed trends in mammal body size. 
+* We found variation in body mass with elevation and also found variation from the coast to the inland deserts in the SA region.
+
+
+# References
+
+[TERN EcoPlots- Terrestrial Ecosystem Research Network.](https://ecoplots.tern.org.au/)
+
+[The Biological Databases of South Australia (BDBSA)](https://www.environment.sa.gov.au/topics/science/information-and-data/biological-databases-of-south-australia)
+
+# Cite this example
+This example is licensed under the Creative Commons Attribution 4.0 (CC-BY-4.0)
+
+You can cite this example dataset for your research as: 
+Singh Ramesh, A. 2023. An example to query an API request for CSV files from the TERN EcoPlots (BDBSA).https://ternaustralia.github.io/ecoplots-examples/
+
