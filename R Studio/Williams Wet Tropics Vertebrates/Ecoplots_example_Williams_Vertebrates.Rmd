@@ -31,18 +31,18 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## EcoPlots API example
 
-The example code shown here is designed to give you an experience at downloading, analyzing and visualising a dataset that is archived on the TERN EcoPlots https://ecoplots-test.tern.org.au/. 
+The example code shown here is designed to give you an experience at downloading, analyzing and visualising a dataset that is archived on the TERN EcoPlots https://ecoplots.tern.org.au/. 
 EcoPlots contains plot-based ecology data from different sources to enable integrated search and access to data based on different jurisdiction, data sources, feature types, parameters and temporal extent. 
 
 # General preparations
-### **Set your working directory**
+### Set your working directory
 
 This gets you started with storing your files and r scripts.
 
 ```{r working directory}
 #setwd("C:/Users/uqasin21") # Note that your path will be different
 ```
-### **Load libraries**
+### Load libraries
 If you do not have the following packages downloaded, you can install them using the function `install.packages`, with the name of the package as an argument in quotations.
 
 
@@ -52,12 +52,15 @@ library(httr)
 library(ggpubr)
 ```
 
-# **Load and explore the data**
+# Load and explore the data
 
 At this point, you should have your Ecoplots search query from the EcoPlots API Query dash board (https://ecoplots-test.tern.org.au/discovery).
 
 ***Important*** Make sure to download your API key from the website (https://account-test.tern.org.au/authenticated_user/apikeys)
 Once you have your API code extracted you can start using the query request
+
+In the following example I have used the Ecoplots-test version (https://ecoplots-test.tern.org.au/api/v1.0/data/bdbsa?dformat=geojson). Please make sure to use
+the latest version of Ecoplots on the following link: https://ecoplots.tern.org.au/
 
 ```{r Api, results='markup', echo=FALSE}
 library(httr)
@@ -87,7 +90,7 @@ res <- VERB("POST", url = "https://ecoplots-test.tern.org.au/api/v1.0/data/willi
 
 ```
 
-# **Explore your data frame and do simple stats**
+# Explore your data frame and do simple stats
 
 First step is to create a data frame, explore and organise it to suite your research needs.
 In this example file, we have occurrence of vertebrates from the Australian Wet Tropics Bioregion, compiled by Williams, 2006. 
@@ -117,7 +120,7 @@ summary(df$regionalGovermentConservationStatus)
 
 From this we see that there are four levels of Conservation Status (Endanngered Wildlife, Leaf Concern Wildlife, Special Least Concern Wildlife and N/A). 
 
-# **Data wrangling and Visualisation-1: Conservation Status **
+# Data wrangling and Visualisation-1: Conservation Status
 Let us visualize them and plot on a map to see how they are distributed within the bioregion. 
 
 ```{r stats2, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
@@ -144,7 +147,7 @@ m1<- ggplot() +
   coord_sf(ylim = c(-11, -22),
            xlim = c(141, 151))+ labs(x = expression(""), y = expression(""), colour="Conservation Status")+ theme_bw()
 
-m1+ scale_color_manual(values=c("red", "steelblue", "grey2", "#CE5832"))+theme(axis.text.y = element_text(colour = "black", size = 14, face = "bold"), 
+m1+ scale_color_manual(values=c("red", "steelblue", "grey2", "#CE5832", "blue", "red", "purple", "yellow"))+theme(axis.text.y = element_text(colour = "black", size = 14, face = "bold"), 
           axis.text.x = element_text(colour = "black", face = "bold", size = 14), 
           legend.text = element_text(size = 12, face ="bold", colour ="black"), 
           legend.position = "top", axis.title.y = element_text(face = "bold", size = 14), 
@@ -157,7 +160,7 @@ m1+ scale_color_manual(values=c("red", "steelblue", "grey2", "#CE5832"))+theme(a
 
 As you can see from the map there are many hits for the Conservation status 'Least concern wildlife', and at least 500 odd hits point to 'Endangered wildlife' in the map. There are also significant proportion of the data with no Conservation Status (listed as N/A). 
 
-# **Data wrangling and Visualisation-2: Species counts**
+#Data wrangling and Visualisation-2: Species counts
 
 Let us create a new data frame with count of species occurrences and conservation status and visualize the levels of occurrence.
 ```{r stats3, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
@@ -192,7 +195,7 @@ h1+ theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold")
 h2<- ggplot(df3, aes(x=no_rows, y=scientificName, fill=regionalGovermentConservationStatus))+
   geom_bar(stat = 'identity')+theme(axis.text.y = element_text(angle = 10, hjust = 1))+labs(y="Scientific name",x="count", fill="")
 
-h2+ scale_fill_manual(values=c("red", "steelblue", "grey2", "#CE5832"))+theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold"), 
+h2+ scale_fill_manual(values=c("red", "steelblue", "grey2", "#CE5832", "blue", "red", "purple", "yellow"))+theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold"), 
           axis.text.x = element_text(colour = "black", face = "bold", size = 12), 
           legend.text = element_text(size = 12, face ="bold", colour ="black"), 
           legend.position = "top", axis.title.y = element_text(face = "bold", size = 12), 
@@ -228,7 +231,7 @@ l1+ theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold")
 l2<- ggplot(lowcounts, aes(x=no_rows, y=scientificName, fill=regionalGovermentConservationStatus))+
   geom_bar(stat = 'identity')+theme(axis.text.y = element_text(angle = 10, hjust = 1))+labs(y="Scientific name",x="count", fill="")
 
-l2+ scale_fill_manual(values=c("red", "steelblue", "grey2", "#CE5832"))+theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold"), 
+l2+ scale_fill_manual(values=c("red", "steelblue", "grey2", "#CE5832", "blue", "red", "purple", "yellow"))+theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold"), 
           axis.text.x = element_text(colour = "black", face = "bold", size = 12), 
           legend.text = element_text(size = 12, face ="bold", colour ="black"), 
           legend.position = "top", axis.title.y = element_text(face = "bold", size = 12), 
@@ -268,7 +271,7 @@ m1<- ggplot() +
   coord_sf(ylim = c(-11, -22),
            xlim = c(141, 151))+ labs(x = expression(""), y = expression(""), colour="counts")+ theme_bw()
 
-m1+ scale_fill_manual(values=c("red", "steelblue", "grey2", "#CE5832"))+
+m1+ scale_fill_manual(values=c("red", "steelblue", "grey2", "#CE5832", "blue", "red", "purple", "yellow"))+
 theme(axis.text.y = element_text(colour = "black", size = 14, face = "bold"), 
 axis.text.x = element_text(colour = "black", face = "bold", size = 14), 
 legend.text = element_text(size = 12, face ="bold", colour ="black"), 
@@ -284,7 +287,7 @@ b1<- ggplot(df5, aes(x = regionalGovermentConservationStatus, fill = occurrence)
   geom_bar(aes(y = after_stat(count / sum(count)))) +
   scale_y_continuous(labels = scales::percent)+labs(y="Proportion of counts",x="Conservation Status", fill="count")
 
-b1+scale_fill_manual(values=c("peachpuff", "steelblue", "#CE5832"))+
+b1+scale_fill_manual(values=c("peachpuff", "steelblue", "#CE5832", "blue", "red", "purple", "yellow"))+
   theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold"), 
 axis.text.x = element_text(colour = "black", face = "bold", size = 12), 
 legend.text = element_text(size = 12, face ="bold", colour ="black"), 
@@ -309,3 +312,10 @@ From the above map we can see that the data set contains high counts of 'Endange
 1. [TERN EcoPlots- Terrestrial Ecosystem Research Network.](https://ecoplots.tern.org.au/)
 
 2. [Vertebrates of the Wet Tropics Rainforests of Australia: Species Distributions and Biodiversity.Cooperative Research Centre for tropical Rainforest Ecology and Management. Rainforest CRC, Cairns, Australia (282 pp.)](https://rainforest-crc.jcu.edu.au/publications/vertebrate_distributions_full.pdf)
+
+# Cite this example
+This example is licensed under the Creative Commons Attribution 4.0 (CC-BY-4.0)
+
+You can cite this example dataset for your research as: 
+Singh Ramesh, A. 2023. An example to query an API request for CSV files from the TERN EcoPlots (Williams Wet Tropics Dataset).https://ternaustralia.github.io/ecoplots-examples/
+
