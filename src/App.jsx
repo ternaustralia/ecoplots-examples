@@ -68,7 +68,7 @@ export default function App() {
               <br />
               <List>
                 <li>
-                  <a href="https://raw.githack.com/ternaustralia/ecoplots-examples/develop/R%20Studio/Williams%20Wet%20Tropics%20Vertebrates/Ecoplots_example_Williams.html" target="_blank" >Example CSV</a>
+                  <a href="https://raw.githack.com/ternaustralia/ecoplots-examples/develop/R%20Studio/Williams%20Wet%20Tropics%20Vertebrates/Ecoplots_example_Williams_Vertebrates.html" target="_blank" >Example CSV</a>
                   <a href="https://github.com/ternaustralia/ecoplots-examples/blob/develop/R%20Studio/Williams%20Wet%20Tropics%20Vertebrates/Ecoplots_example_Williams_Vertebrates.Rmd" target="_blank" className='second-link'>(source code)</a>
                 </li>
               </List>
