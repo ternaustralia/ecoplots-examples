@@ -1,7 +1,7 @@
 ---
-title: "EcoPlotsAPI-GeoJson"
+title: "EcoPlotsAPI"
 author: "Arun Singh Ramesh^[TERN, a.singhramesh@uq.edu.au]"
-date: "29/09/2023"
+date: "28/09/2023"
 output:
   html_document:
     code_folding: show
@@ -26,48 +26,43 @@ classoption: a4paper
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+knitr::opts_chunk$set(echo = TRUE)
 ```
-## EcoPlots API- GeoJson for BDBSA
 
-The example code shown here is designed to give you an experience at downloading, analyzing and visualising a dataset in GeoJson format that is archived on the TERN EcoPlots https://ecoplots-test.tern.org.au/. 
+## EcoPlots API example
 
+The example code shown here is designed to give you an experience at downloading, analyzing and visualising any dataset archived on the TERN EcoPlots https://ecoplots.tern.org.au/. 
 EcoPlots contains plot-based ecology data from different sources to enable integrated search and access to data based on different jurisdiction, data sources, feature types, parameters and temporal extent. 
 
 # General preparations
-### **Set your working directory**
+### Set your working directory
 
 This gets you started with storing your files and r scripts.
 
 ```{r working directory}
 #setwd("C:/Users/uqasin21") # Note that your path will be different
 ```
-### **Load libraries**
+### Load libraries
 If you do not have the following packages downloaded, you can install them using the function `install.packages`, with the name of the package as an argument in quotations.
 
 
 ```{r load, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
-
-library(httr)
-library(jsonlite)
-library(geojsonsf)
-library(sf)
 library(tidyverse)
-library(ozmaps)
+library(httr)
+library(ggpubr)
+library(gridExtra)
 ```
 
-# **Load and explore the data**
+# Load and explore the data
 
-At this point, you should have your Ecoplots search query from the EcoPlots API Query dash board (https://ecoplots-test.tern.org.au/discovery).
+At this point, you should have your Ecoplots search query from the EcoPlots API Query dash board (https://ecoplots.tern.org.au/discovery).
 
 ***Important*** Make sure to download your API key from the website (https://account-test.tern.org.au/authenticated_user/apikeys)
 Once you have your API code extracted you can start using the query request
 
+In the following example I have used the Ecoplots-test version (https://ecoplots-test.tern.org.au/api/v1.0/data/bdbsa?dformat=geojson). Please make sure to use
+the latest version of Ecoplots on the following link: https://ecoplots.tern.org.au/
 ```{r API, results='hide', eval=TRUE, message=FALSE, warning=FALSE}
-#Geojson example
-
-library(httr)
-
 headers = c(
   'X-Api-Key' = 'your-api-key',
   'Content-Type' = 'application/json'
@@ -78,110 +73,165 @@ body = '{
     "dataset": [
       "http://linked.data.gov.au/dataset/bdbsa"
     ],
-    "feature_type": [
-      "http://linked.data.gov.au/def/tern-cv/e16f8309-5db3-4efb-ba4d-a352fb3dcd94"
-    ],
     "observed_property": [
+      "http://linked.data.gov.au/def/tern-cv/fc2dcb5b-94a5-440f-9104-efaa640246cc",
       "http://linked.data.gov.au/def/tern-cv/56195246-ec5d-4050-a1c6-af786fbec715",
-      "http://linked.data.gov.au/def/tern-cv/fc2dcb5b-94a5-440f-9104-efaa640246cc"
+      "http://linked.data.gov.au/def/tern-cv/800cf33b-1c44-435d-89bd-5d80e3e8aba1"
+    ],
+    "feature_type": [
+      "http://linked.data.gov.au/def/tern-cv/226a127b-7248-476a-84ad-0412a5e3af52"
     ]
   }
 }';
 
-res <- VERB("POST", url = "https://ecoplots-test.tern.org.au/api/v1.0/data/bdbsa?dformat=geojson", body = body, add_headers(headers))
+res <- VERB("POST", url = "https://ecoplots-test.tern.org.au/api/v1.0/data/bdbsa?dformat=csv", body = body, add_headers(headers))
+
+cat(content(res, 'text'))
+
+df <- read.table(text = content(res, 'text'), sep =",", header = TRUE, stringsAsFactors = FALSE)
 
 
 ```
 
-# **Extract your contents from raw response using sf into a dataframe **
+# **Explore your data frame and do simple stats**
 
-First step is extract contents stored as raw response and explore the data frame. In this example we have used the mammal occurrence records from the BDBSA dataset using a query in EcoPlots.  
-```{r  geojson, results='hide', eval=TRUE, message=FALSE, warning=FALSE}
+First step is to explore the data frame and organise it to suite your research needs. In this example dataset, I have queried results for body mass of mammals from the BDBSA data source. Let us explore and see what infornation can we derive.
+```{r  stats0, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+#data exploration and wrangling
+head(df)
+tail(df)
+summary(df) 
 
-# data frame features extraction
-# Extract GeoJSON content
-data <- content(res, as="text")
 
-# Convert GeoJSON content to an sf object
-sf_data <- st_read(data)
 ```
-The raw respone has a vector with character files stored in the sf_data data frame object.
 
-# **Map occurrence records on Ozmap **
-Let us visualise the raw occurrence data from BDBSA that we extracted using the geojson API query
+It looks like the dataset has many vectors either as a categorical or numeric vector. We need to organise the dataframe and store the categorical values as a factor. 
 
-```{r  geojson1, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+```{r  stats1, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
 
-#mapping 
-# Map
-library(ozmaps)
-aus <- ozmap_data(data = "states") # create a map layer with state boundaries 
-#visualise raw occurrence into a map
-m1<- ggplot(sf_data) +
-  stat_sf_coordinates()+
-  geom_sf(data = aus, fill = "#FBFBEF")+
-  geom_point(
-    aes(geometry = geometry,color="",
-        xmin = after_stat(x) - 0.1,
-        xmax = after_stat(x) + 0.1,
-        y = after_stat(y),
-        height = 0.02),
-    stat = "sf_coordinates"
-  )+ labs(x = expression(""), colour = "raw occurrence", y = expression(""))+ theme_bw()
+#convert your numerical values to numeric and categorical values into factor levels
+df$bodyMass_gram<- as.numeric(df$bodyMass_gram)
+df$scientificName<- as.factor(df$scientificName)
 
-m1+ theme(axis.text.y = element_text(colour = "black", size = 14, face = "bold"), 
-          axis.text.x = element_text(colour = "black", face = "bold", size = 14), 
+# visualise the general distribution of your response variable (body mass)
+hist(df$bodyMass_gram, breaks = 150)
+
+```
+It looks like majority of the dataset contains body mass distribution of mammals below 300g. 
+Here we subset the data frame to represent body mass below 50g for example and then see if the distribution is normal.
+
+
+```{r  stats2, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+#subset
+dflow<- subset(df, bodyMass_gram<=50)
+hist(dflow$bodyMass_gram, breaks = 100)
+
+```
+
+Now we have a new dataframe with 6703 hits. And the dataset appears to be a better representation of body size distribution.
+
+# **Data Visualisation**
+For the first instance, let us visualise a relation between body mass with elevation
+
+```{r  vis1, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+
+plot(dflow$bodyMass_gram~dflow$altitude_Metre)
+
+```
+
+As you can see the data is scattered all over with higher point clouds at lower elevation sites. 
+Let visualise with a regression line and see how the slope of the relationship changes with elevation.
+
+```{r  vis2, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+
+#fancy data visualisation
+library(ggpubr)
+
+l1<-ggscatter(dflow, x = "altitude_Metre", y = "bodyMass_gram", 
+              color = "#C33453", pch=19, size=5,alpha=0.8)+ggtitle("")+ 
+  stat_cor(aes(label = paste(..rr.label.., ..p.label.., sep = "~`,`~")),label.y = 45, label.x = 700, size=4)+stat_smooth(se=TRUE, formula = y~x, color="grey")+
+  stat_regline_equation(label.y =47 , label.x = 700, size=4)+
+  xlab(expression(Elevation~(meter~a.s.l.)))+ ylab(expression(Body~Mass~("g")))+ theme_bw()
+
+l1+ theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold"), 
+          axis.text.x = element_text(colour = "black", face = "bold", size = 12), 
           legend.text = element_text(size = 12, face ="bold", colour ="black"), 
           legend.position = "top", axis.title.y = element_text(face = "bold", size = 14), 
           axis.title.x = element_text(face = "bold", size = 14, colour = "black"), 
           legend.title = element_text(size = 14, colour = "black", face = "bold"), 
           panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
           legend.key=element_blank())
+```
+
+As you can see there is a weak but negative slope, suggesting that majority of large mammals are found in the lower elevation sites.
+
+# **Body mass summary at Site/Species level**
+
+Now that we have a relation of body mass with elevation. Let us normalise the data and calculate the trends in body size across different bioregions. In this example we use two contrasting biomes- a coast versus an inland desert.
+
+```{r  vis3, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+
+#aggregate biomass by Species, Project and Site
+dflow$projectTitle<- as.factor(dflow$projectTitle)
+dflow$siteName<- as.factor(dflow$siteName)
+
+library(tidyverse)
+library(gridExtra)
+
+dflow%>%
+  group_by(siteName,projectTitle,scientificName)%>%
+  summarize(bodyMass_gram=sum(bodyMass_gram,na.rm=TRUE))->summed_species_level_biomass
+
+# let us see the body mass averaged for each species 
+with(summed_species_level_biomass, tapply(bodyMass_gram, c(scientificName), mean))
+
+#subset data for the project on Eyre Peninsula (coast) in SA
+
+Eyre_Peninsula<- subset(summed_species_level_biomass, projectTitle=="Southern Eyre Peninsula")
+
+#plot species biomass by Project location (one in coast versus inland desert)
+#Lets look at the Coast
+plot1<-ggplot(Eyre_Peninsula, aes(x = scientificName, y = bodyMass_gram))+ggtitle("Eyre Peninsula")+geom_col(position="dodge")+labs(x="Species",y="Body mass (g)")
+p1<- plot1+theme_bw() +theme(axis.text.x = element_text(angle = 45, hjust = 1))
+p1
+
 
 ```
 
-Now you can see that the raw occurrence mammal records from BDBSA dataset. Let us convert the mammal records using site as a factor, and then visualise on a map.
+There appears to be fewer species recorded from this Coast with the species <i> Mus musculus</i> accounting for the highest body mass.
 
+Let us see what body sizes we observe for mammals within the Great Sandy desert
 
-```{r  geojson2, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
+```{r  vis4, results='markdown', eval=TRUE, message=FALSE, warning=FALSE}
 
-# convert the site into a factor
-sf_data$site<- as.factor(sf_data$site)
-#visualise occurrence by Site on a map
-m1<- ggplot(sf_data) +
-  stat_sf_coordinates()+
-  geom_sf(data = aus, fill = "#FBFBEF")+
-  geom_point(
-    aes(geometry = geometry,color=site,
-        xmin = after_stat(x) - 0.1,
-        xmax = after_stat(x) + 0.1,
-        y = after_stat(y),
-        height = 0.02, alpha=0.8),
-    stat = "sf_coordinates"
-  )+ labs(x = expression(""), colour = "site", y = expression(""))+ theme_bw()
+#subset data for the Project on Sandy Desert in SA
 
-m1+ theme(axis.text.y = element_text(colour = "black", size = 14, face = "bold"), 
-          axis.text.x = element_text(colour = "black", face = "bold", size = 14), 
-          legend.text = element_text(size = 12, face ="bold", colour ="black"), 
-          legend.position = "none", axis.title.y = element_text(face = "bold", size = 14), 
-          axis.title.x = element_text(face = "bold", size = 14, colour = "black"), 
-          legend.title = element_text(size = 14, colour = "black", face = "bold"), 
-          panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
-          legend.key=element_blank())
+Sandy_desert<-subset(summed_species_level_biomass,projectTitle=="Sandy Desert")
 
+#plot species biomass by Project location (inland desert)
 
+#Sandy desert
+plot2<-ggplot(Sandy_desert, aes(x = scientificName, y = bodyMass_gram))+geom_col(position="dodge")+labs(x="Species",y="Body mass (g)")
+p2<- plot2+theme_bw() +theme(axis.text.x = element_text(angle = 45, hjust = 1))
+p2
 
 ```
 
 # Summary
-* In Summary one can extract species occurrence records of mammals from BDBSA using a GeoJson API query 
-and 
-* plot the species occurrence records on a map using some simple code snippets as above.
+* We queried a dataset from the [TERN EcoPlots](https://ecoplots.tern.org.au/) from the BDBSA data source using the EcoPLots API query request.
+* With a few simple steps we managed to input a dataframe in R and observed trends in mammal body size. 
+* We found variation in body mass with elevation and also found variation from the coast to the inland deserts in the SA region.
 
-We can create multiple faceted search query on TERN EcoPlots using the API and with some of the above steps extract information to suite your research questions. 
 
 # References
 
 [TERN EcoPlots- Terrestrial Ecosystem Research Network.](https://ecoplots.tern.org.au/)
 
 [The Biological Databases of South Australia (BDBSA)](https://www.environment.sa.gov.au/topics/science/information-and-data/biological-databases-of-south-australia)
+
+# Cite this example
+This example is licensed under the Creative Commons Attribution 4.0 (CC-BY-4.0)
+
+You can cite this example dataset for your research as: 
+Singh Ramesh, A. 2023. An example to query an API request for CSV files from the TERN EcoPlots (BDBSA).https://ternaustralia.github.io/ecoplots-examples/
+
