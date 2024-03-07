@@ -1,0 +1,269 @@
+---
+title: "Biomass_GeoJson_tutorial_reduced"
+output: html_document
+date: "2024-03-06"
+---
+
+---
+title: "EcoPlots Biomass-GeoJson tutorial in R"
+author: "Lachlan Charles^[TERN, l.charles@uq.edu.au]"
+date: "20/02/2024"
+output:
+  html_document:
+    theme: spacelab
+    github_document: true
+---
+
+## EcoPlots- GeoJson for Ecosystem Processes Biomass data in R Studio
+
+EcoPlots <https://ecoplots-test.tern.org.au/> contains plot-based
+ecology data from different sources to enable integrated search and
+access to data based on different jurisdiction, data sources, feature
+types, parameters and temporal extent.
+
+This example tutorial shown here is designed to give you an experience at
+working with GeoJson files downloaded from EcoPlots in R Studio. In this example,
+biomass data was downloaded from EcoPlots and we will extract, aggregate
+and visualise the data.
+
+The Ecosystem Processes Biomass dataset contains stem level measurements (stem diameter, stem height, scientific name and above ground biomass) for over 38,000 individual stems, sampled across 16 one hectare plots throughout Australia between 2010 - present.
+
+To access the biomass data that we will be working with, go to EcoPlots <https://ecoplots-test.tern.org.au/> and use the faceted search bar on the left to select the fields shown in the image below.  Once selected, click the download button and follow the prompts to download the data
+
+![](images/ecoplots.png)
+<br><br>Once the data is downloaded, you will receive a GeoJson file in the
+download packager which looks like this:
+
+![](images/download-package.png) 
+
+Before we look at the GeoJson file in R Studio, we will need to load some R packages.
+
+## Load required libraries
+
+If you do not have the following packages downloaded, you can install
+them using the function `install.packages`, with the name of the package
+as an argument in quotations.
+```{r load-kable, message=FALSE, include=FALSE, results="markdown"}
+library(kableExtra)
+library(plotly)
+library(listviewer)
+library(markdown)
+library(knitr)
+library(htmlwidgets)
+library(jsonlite)
+```
+
+```{r load, eval=TRUE, message=FALSE, results="markdown"}
+library(geojsonR)  # For handling GeoJSON files
+library(purrr)     # For functional programming tools
+library(tibble)    # For creating tidy data frames
+library(dplyr)     # For data manipulation
+library(tidyr)     # For data tidying functions
+library(leaflet)   # For plotting data on interactive map
+```
+
+## Read the GeoJSON file using geojsonR package
+
+Note: you will need to add your own file directory path and Geojson file name: "/your_file_path/your_geojson_file.json"
+```{r upload, echo=TRUE, message=FALSE, results="markdown"}
+geojsonfile<-FROM_GeoJson("/Users/uqlchar2/Downloads/Biomass_data_for_GeoJson_tutorial_ec908f76b0e711ee8c816614211e1c8a/data/geojson/geojson_15f2b8873d1f93534389972052d383d2_formatted.json")
+```
+
+## Inspect the GeoJson file
+Now let's look a the GeoJson file by using the View(geojsonfile) command in R. Here we see that the GeoJson file contains features, composed of 61 nested lists.  You can expand the GeoJson file and see the layout of the data. In the below example, we have reduced the GeoJson file to include only one site (site 15) for simplicity, yet we will use the complete dataset for the rest of the example.
+
+```{r geojson_subset, echo = TRUE, results="markdown"}
+
+subset_geojson<-geojsonfile$features[[15]] 
+```
+
+```{r upload-plotly, echo=TRUE, results="markdown"}
+
+plotly_json(subset_geojson,jsonedit = TRUE) 
+```
+
+By clicking on the "features" arrow, the list will expand to show the nested structure. Here we see that features contains "geometry" (the coordinates of the plots) and the properties.
+
+If we expand both "geometry" and "properties", we see the coordinates and information about the "dataset", "observations", "site" and "site visit".
+
+Now we can expand the "observations" and the following "feature observations".  Here we see that there are four observations: above ground biomass, scientific name, stem diameter and stem height.  Each feature observation has a value, unit, result time and used procedure.  Note: if you see an entry with "null", it means that there was no data recorded during the sampling period for that specific tree.  
+
+Finally we can expand the "featureId attributes" which give attribute information about the identity of the measured plant (plantId) and the stem (stemId).
+
+
+## Extracting and manipulating data
+
+Now that we have looked at the nested structure of the data (lists within lists), we can extract and manipulate the data into a dataframe so we can plot the results.  In the following example, we will extract each piece of data (observations, attributes, geometry and site information).
+
+First we will create a list called "allObs_biomass_data" where we will put all the observations, site visit, site name and coordinates (geometry) from the "for loop" function below:
+
+```{r list, eval=TRUE, message=FALSE, results="markdown"}
+allObs_biomass_data <- list() 
+```
+
+Now run a "for loop" which iterates over the elements of the geojson file.  The "for loop" below extracts the specific data (observations, site visit, site name and geometry) nested within the "features" object and places it in the "allObs_biomass_data" list. 
+
+```{r for-loop, eval=TRUE, message=FALSE, results="markdown"}
+for(i in 1:length(geojsonfile$features)) {
+  allObs_biomass_data[[i]] = list(
+    ## get observations nested within properties, nested within features
+    observations = geojsonfile$features[[i]]$properties$observations,  
+    ## get site visits nested within properties, nested within features
+    siteVisit = geojsonfile$features[[i]]$properties$siteVisit,
+    ## get site names nested properties, nested within features
+    siteName = geojsonfile$features[[i]]$properties$site$siteName,
+    ## get geometry nested within features
+    geometry = geojsonfile$features[[i]]$geometry 
+  )
+}
+```
+
+
+Now we can write a function to process and expand each nested feature in allObs_biomass_data list.  Here we want to extract: 1) feature observations: featureId, scientificName, above ground biomass (value and unit), stem diameter (value and unit) and stem height (value and unit) and 2) the attributes: stemId (value) and plantId (value). 
+
+
+```{r function, eval=TRUE, message=FALSE, results="markdown"}
+process_feature <- function(feature) { ## function called "process_feature" with collates all the feature observations
+  ## extract all featureIds
+  featureId <- feature$featureId 
+  ## extract all scientific names
+  scientificName_value <- feature$feature.observations$scientificName[[1]]$value 
+  ## extract all values of above ground biomass
+  aboveGroundBiomass_value <- feature$feature.observations$aboveGroundBiomass[[1]]$value 
+  ## extract all units of above ground biomass
+  aboveGroundBiomass_unit <- feature$feature.observations$aboveGroundBiomass[[1]]$unit 
+  ## extract all values of stem diameter
+  stemDiameter_value <- feature$feature.observations$stemDiameter[[1]]$value 
+  ## extract all units of stem diameter
+  stemDiameter_unit <- feature$feature.observations$stemDiameter[[1]]$unit 
+  ## extract all values of stem height
+  stemHeight_value <- feature$feature.observations$stemHeight[[1]]$value 
+  ## extract all units of stem height
+  stemHeight_unit <- feature$feature.observations$stemHeight[[1]]$unit 
+  
+  ## Directly extract attributes
+  ## extract all plantId values
+  plantId_value <- feature$featureId.attributes$plantId$value 
+  ## extract all stemId values
+  stemId_value <- feature$featureId.attributes$stemId$value 
+  
+  # Create a tibble (data frame) with the extracted information
+  df <- tibble(
+    featureId = featureId,
+    plantId = plantId_value,
+    stemId = stemId_value,
+    scientificName_value = scientificName_value,
+    aboveGroundBiomass_value = aboveGroundBiomass_value,
+    aboveGroundBiomass_unit = aboveGroundBiomass_unit,
+    stemDiameter_value = stemDiameter_value,
+    stemDiameter_unit = stemDiameter_unit,
+    stemHeight_value = stemHeight_value,
+    stemHeight_unit = stemHeight_unit
+  )
+  
+  return(df)
+}
+```
+
+
+Now we will create a function to process the site information and geometry elements in allObs_biomass_data, which are lists of features.
+
+```{r function-all-features, eval=TRUE, message=FALSE, results="markdown"}
+process_all_features <- function(features_list) {
+  results_df <- tibble()
+   # Loop through each observation in the feature list
+  for (i in 1:length(features_list$observations)) {
+    obs_df <- process_feature(features_list$observation[[i]])
+    # Append site visit date and site name to the data frame
+    obs_df$siteVisitDate <- features_list$siteVisit$siteVisitDate 
+    obs_df$siteName<-features_list$siteName
+    # Extract latitude and longitude from geometry and add them to the data frame
+    lat <- features_list$geometry$coordinates[[1]]
+    long <- features_list$geometry$coordinates[[2]]
+    obs_df$geometry <- list(c(lat, long))
+    # Append the processed observation to the results data frame
+    results_df <- bind_rows(results_df, obs_df)
+  }
+  
+  return(results_df)
+}
+```
+
+
+Now we will combine the "allObs_biomass_data" and "process_all_features" into a single dataframe
+
+```{r combine_df, eval=TRUE, message=FALSE, results="markdown"}
+df <- map_df(allObs_biomass_data, process_all_features)
+```
+
+Now we can look at the dataframe.  Here we see that the columns include featureId attributes (plantId and stemId), feature observations (scientific name, stem diameter, stem height and above ground biomass), site name and geometry.  Note: the geometry column is still a list of two sets of coordinates, which we will need to" unlist" below. 
+
+```{r view_df, echo=FALSE, message=FALSE, results="markdown"}
+kbl(df,caption = "**df**") %>%
+scroll_box(width = "1000px", height = "400px")%>%
+kable_styling( position = "right", bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+
+## Processing the data for mapping
+
+Given that the variable "geometry" is a list (containing the longitude and latitude), we need to split it into two columns.
+
+```{r split_geometry, eval=TRUE, message=FALSE, results="markdown"}
+unnest_geom<-unnest_wider(df, col = geometry,names_sep = "_")
+```
+
+Now we can rename "geometry_1" (column 11) and "geometry_2" (column 12) to "longitude" and "latitude", respectively.
+
+```{r rename_geometry, eval=TRUE, message=FALSE, results="markdown"}
+colnames(unnest_geom)[11]<-"longitude"
+colnames(unnest_geom)[12]<-"latitude"
+```
+
+
+Now we have a dataframe ready to perform some calculations.  For this example, we may want to plot site level biomass for each site and survey year. So, now we will aggregate above ground biomass by site and year.
+
+```{r aggreagte_biomass, echo=TRUE, message=FALSE, results="markdown"}
+##create new dataframe called "site_level_biomass"
+site_level_biomass<-unnest_geom%>% 
+  ## group data to aggregate by site name, site visit date, longitude and latitude
+  group_by(siteName,siteVisitDate,longitude,latitude)%>% 
+  ## sum the above ground biomass for each site
+  summarize(site_level_biomass=sum(aboveGroundBiomass_value,na.rm=TRUE))
+
+##inspect site level biomass tibble
+head(site_level_biomass)
+```
+
+Convert to tibble table to data frame.
+
+```{r new_df, eval=TRUE, message=FALSE, results="markdown"}
+site_level_biomass_df<-as.data.frame(site_level_biomass)
+```
+
+Now we can convert above ground biomass from kilograms to tonnes per hectare (all sites are 1 hectare)
+
+```{r tonnes_per_ha, echo=TRUE, message=FALSE, results="markdown"}
+site_level_biomass_df$standBiomass_tonnesPerHectare<-site_level_biomass_df$site_level_biomass/1000
+
+##inspect
+head(site_level_biomass_df)
+```
+
+Now we can visualise the stand biomass (per ha) on a map
+
+```{r map, echo=TRUE, message=FALSE, results="markdown"}
+## create a leaflet map object using the site_level_biomass_df data
+map<-leaflet(site_level_biomass_df) %>% addTiles()
+
+## add markers (which can be clusters of markers) for each data point in site_level_biomass_df.  Add label with "site name","year" and "above ground biomass t/ha"
+map2<-map%>%addMarkers(data=site_level_biomass_df,clusterOptions = markerClusterOptions(map,spiderfyDistanceMultiplier=1),~longitude, ~latitude,
+                       label= paste("Site name: ",site_level_biomass_df$siteName,
+                                    "Year: ",site_level_biomass_df$siteVisitDate,
+                                    "AGB Tonnes/ha: ",site_level_biomass_df$standBiomass_tonnesPerHectare))
+
+## view map
+map2
+```
+                                                             
+You can now navigate the interactive map to see the site level biomass for each site over time by clicking on the clusters to expand the individual icons.                                                             
