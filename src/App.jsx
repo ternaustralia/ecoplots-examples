@@ -44,6 +44,20 @@ export default function App() {
                 <a href="https://ternaus.atlassian.net/wiki/spaces/TDSAG/pages/2633728070/Testing+EcoPlots+API" target="_blank" >EcoPlots API Guide</a>.
               </p>
               <br />
+              <h4>TERN Ecosystem Processes</h4>
+              <p>
+                TERN's Ecosystem Processes database contains detailed environmental data collected from monitoring TERN operated sites located in significant
+                Australian biomes, spanning a wide range of environmental conditions. TERN Ecosystem Processes data are derived by data collection methods that span
+                from periodic field surveys and in-situ sensors operated continuously at a local scale.
+              </p>
+              <br />
+              <List>
+                <li>
+                  <a href="https://raw.githack.com/ternaustralia/ecoplots-examples/develop/R%20Studio/Tern-Ecosystem-Processes/Biomass_GeoJson_tutorial_reduced.html" target="_blank">Biomass Example GeoJSON</a>
+                  <a href="https://github.com/ternaustralia/ecoplots-examples/blob/develop/R%20Studio/Tern-Ecosystem-Processes/Biomass_GeoJson_tutorial_reduced.Rmd" target="_blank" className='second-link'>(source code)</a>
+                </li>
+              </List>
+              <br />
               <h4>BDBSA</h4>
               <p>The BDBSA is South Australia's flora and fauna database (<a href="https://www.environment.sa.gov.au/topics/science/information-and-data/biological-databases-of-south-australia" target="_blank" >BDBSA</a>). The BDBSA data on the TERN EcoPlots is structured based on feature types and parameters of interest for flora and fauna from South Australia region.</p>
               <br />
@@ -84,7 +98,7 @@ export default function App() {
               <br />
               <h4>TERN Ecosystem Processes</h4>
               <p>
-                TERN’s Ecosystem Processes database contains detailed environmental data collected from monitoring TERN operated sites located in significant
+                TERN's Ecosystem Processes database contains detailed environmental data collected from monitoring TERN operated sites located in significant
                 Australian biomes, spanning a wide range of environmental conditions. TERN Ecosystem Processes data are derived by data collection methods that span
                 from periodic field surveys and in-situ sensors operated continuously at a local scale.
               </p>
