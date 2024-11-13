@@ -8,7 +8,7 @@ output: word_document
 # Clean your workspace
 #this command cleans up the workspace and is good to run before or after an R session
 ```{r}
-rm(list=ls()) # cleans the workspace
+rm(list=ls()) # cleans the workspace 
 ```
 
 # Import the data throught the API key
