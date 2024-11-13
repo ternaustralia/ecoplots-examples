@@ -1,0 +1,227 @@
+---
+title: "Ecoplots_Stem_Height_and_Stem_Diameter"
+author: "Elisa Girola"
+date: "2024-11-07"
+output: word_document
+---
+
+# Clean your workspace
+#this command cleans up the workspace and is good to run before or after an R session
+```{r}
+rm(list=ls()) # cleans the workspace 
+```
+
+# Import the data throught the API key
+#An API key is a unique identifier generated using the tutorial video "How to generate an API key". This key allows us to track data usage from the TERN data portal
+This chunk accesses the data directly from Ecoplots using an API key. This option is preferable if you want your dataset to be always up to date with new data available in Ecoplots. Remember to paste your own key where you see 'your-api-key'.
+```{r}
+# #install.packages(httr)
+# library(httr)
+# 
+# headers = c(
+#   'X-Api-Key' = 'your-api-key',
+#   'Content-Type' = 'application/json'
+# )
+# 
+# body = '{
+#   "query": {
+#     "region_type": [
+#       "http://linked.data.gov.au/dataset/asgs2016/stateorterritory"
+#     ],
+#     "region": [
+#       "http://linked.data.gov.au/dataset/asgs2016/stateorterritory/3",
+#       "http://linked.data.gov.au/dataset/asgs2016/stateorterritory/1",
+#       "http://linked.data.gov.au/dataset/asgs2016/stateorterritory/2"
+#     ],
+#     "feature_type": [
+#       "http://linked.data.gov.au/def/tern-cv/60d7edf8-98c6-43e9-841c-e176c334d270"
+#     ],
+#     "observed_property": [
+#       "http://linked.data.gov.au/def/tern-cv/5701d307-bbea-415a-8857-fbf27d5b93ed",
+#       "http://linked.data.gov.au/def/tern-cv/c3111898-8404-4306-9599-e7866a749de7",
+#       "http://linked.data.gov.au/def/tern-cv/70646576-6dc7-4bc5-a9d8-c4c366850df0"
+#     ],
+#     "search_logic": [
+#       "or"
+#     ]
+#   }
+# }';
+# 
+# res <- VERB("POST", url = "https://ecoplots.tern.org.au/api/v1.0/data?dformat=csv", body = body, add_headers(headers))
+# 
+# #cat(content(res, 'text'))
+# 
+# data <- read.table(text = content(res, 'text'), sep =",", header = TRUE, stringsAsFactors = FALSE)
+```
+
+# Import the csv file
+This chunk imports the the csv file downloaded on your computer. This option is preferable if you do not want your dataset to change, i.e. if new data become available in Ecoplots this will not be reflected in your dataset. Remember to change the path to the location where you saved the csv file. The code to import the csv file is slightly different between PC and Mac users. See the two examples below. 
+
+## PC users
+```{r}
+data <- read.csv("C:\\Users\\uqegirol\\Desktop\\workshop_data.csv", header = TRUE) # reads the csv file. Change the file path to the folder where you saved the csv
+```
+
+## Mac users
+```{r}
+# data <- read.csv("/Users/uqegirol/Desktop/workshop_data.csv") # reads the csv file. Change the file path to the folder where you saved the csv
+```
+
+# Removing repeated measurements
+Some of the Ecoplots datasets contain repeated measurements taken on the same stem at different times. This chunk identifies stems that have repeated measurements and removes the older ones. Only the most recent measurement is kept for following analyses. 
+```{r}
+# Install the required package/s - uncomment and run these line/s only if you haven't already installed the package/s
+#install.packages("lubridate") 
+#install.packages("dplyr") 
+
+# Load the required package/s
+library(lubridate)
+library(dplyr)
+
+data$siteVisitStartDate <- ymd_hms(data$siteVisitStartDate) # converts the date from a char string into POSIXct format
+
+latest_data <- data %>%
+  group_by(featureId) %>% # groups the data by individual
+  slice_max(order_by = siteVisitStartDate, n = 1) %>% # selects the row with the latest date for each group (individual)
+  ungroup() # removes the grouping, so you're left with a standard data frame again
+```
+
+# Select trees by species
+This chunk selects the species of trees that have been found to be relevant for GG based on the published literature. 
+Australian Plant Name Index (APNI) accepted species names are used. 
+```{r}
+# Install the required package/s - uncomment and run these line/s only if you haven't already installed the package/s
+#install.packages("tidyverse")
+
+# Load the required package/s
+library(tidyverse)
+
+GG_tree_data <- latest_data[!is.na(latest_data$taxon), ] # excludes NA
+
+species_pattern <- paste0("(Allocasuarina torulosa|Angophora floribunda|Corymbia citriodora|Corymbia intermedia|Corymbia watsoniana|Eucalyptus acmenoides|Eucalyptus camphora|Eucalyptus crebra|Eucalyptus dalrympleana|Eucalyptus delegatensis|Eucalyptus dives|Eucalyptus fibrosa subsp. nubila|Eucalyptus macrorhyncha|Eucalyptus moluccana|Eucalyptus nitens|Eucalyptus portuensis|Eucalyptus radiata|Eucalyptus regnans|Eucalyptus tereticornis|Eucalyptus viminalis|Lophostemon suaveolens)") # creates search pattern
+
+GG_tree_data <- GG_tree_data[str_detect(GG_tree_data$taxon, species_pattern), ] # subsets data where 'taxon' contains any of the specified species
+
+GG_tree_data <- subset(GG_tree_data, !grepl(" x ", taxon)) # excludes hybrids
+```
+
+## Create a map that shows the location of the plots that have trees of the relevant species
+```{r}
+# Install the required package/s - uncomment and run these line/s only if you haven't already installed the package/s
+#install.packages(ggplot2)
+#install.packages(maps)
+#install.packages(mapdata)
+
+# Load the required package/s
+library(ggplot2)
+library(maps)
+library(mapdata)
+
+australia_map <- map_data("worldHires", region = "Australia") # gets the map data for Australia
+
+ggplot() +
+  # creates the map of Australia
+  geom_polygon(data = australia_map, aes(x = long, y = lat, group = group), fill = "lightblue", color = "black") +
+  # adds the data points on top of the map
+  geom_point(data = GG_tree_data, aes(x = longitude_Degree, y = latitude_Degree), color = "red", size = 2) + 
+  # adjusts plot appearance
+  coord_fixed(xlim = c(110, 160), ylim = c(-45, -10)) +
+  labs(x = "Longitude", y = "Latitude", title = "Plots containing trees species relevant to GG") +
+  theme_minimal()
+
+```
+
+# Select trees by size - foraging
+This chunck selects the trees that have been found to be relevant for GG foraging based on their DBH.
+```{r}
+GG_tree_data_foraging <- GG_tree_data[!is.na(GG_tree_data$stemDiameter_centimetre), ] # removes data that do not have a diameter measurement
+
+GG_tree_data_foraging <- subset(GG_tree_data, stemDiameterPointOfMeasurement_Metre >= 1.30|NA) # selects trees whose diameter was measured at or above 1.3m
+
+GG_tree_data_foraging <- subset(GG_tree_data, stemDiameter_centimetre >= 30) # subsets based on a threshold for DBH
+
+ggplot() +
+  # creates the map of Australia
+  geom_polygon(data = australia_map, aes(x = long, y = lat, group = group), fill = "lightblue", color = "black") +
+  # adds the data points on top of the map
+  geom_point(data = GG_tree_data_foraging, aes(x = longitude_Degree, y = latitude_Degree), color = "red", size = 2) + 
+  # adjusts plot appearance
+  coord_fixed(xlim = c(110, 160), ylim = c(-45, -10)) +
+  labs(x = "Longitude", y = "Latitude", title = "Plots containing trees suitable for GG foraging") +
+  theme_minimal()
+```
+
+
+# Select trees by size - resting
+This chunck selects the trees that have been found to be relevant for GG resting based on their DBH.
+```{r}
+GG_tree_data_resting <- GG_tree_data[!is.na(GG_tree_data$stemDiameter_centimetre), ] # removes data that do not have a diameter measurement
+
+GG_tree_data_resting <- subset(GG_tree_data, stemDiameterPointOfMeasurement_Metre >= 1.30|NA) # selects trees whose diameter was measured at or above 1.3m
+
+GG_tree_data_resting <- subset(GG_tree_data, stemDiameter_centimetre >= 50) # subsets based on a threshold for DBH
+
+ggplot() +
+  # creates the map of Australia
+  geom_polygon(data = australia_map, aes(x = long, y = lat, group = group), fill = "lightblue", color = "black") +
+  # adds the data points on top of the map
+  geom_point(data = GG_tree_data_resting, aes(x = longitude_Degree, y = latitude_Degree), color = "red", size = 2) + 
+  # adjusts plot appearance
+  coord_fixed(xlim = c(110, 160), ylim = c(-45, -10)) +  
+  labs(x = "Longitude", y = "Latitude", title = "Plots containing trees suitable for GG resting") +
+  theme_minimal()
+```
+
+# Model tree height on DBH 
+We'll investigate the relationship between tree height and DBH for the relevant tree species. We'll create a general liner model with stem height as the response variable and stem diameter and taxon as the explanatory variables.
+## Preparing the data
+```{r}
+# Install the required package/s - uncomment and run these line/s only if you haven't already installed the package/s
+# install.packages(dplyr)
+
+# Load the required package/s
+library(dplyr)
+
+GG_model_data <- GG_tree_data[!is.na(GG_tree_data$stemDiameter_centimetre), ] # removes data that do not have a measurement of diameter
+GG_model_data <- GG_model_data[!is.na(GG_model_data$stemHeight_metre), ] # removes data that do not have a measurement of height. Note that taxon = NA has already been removed. 
+
+GG_model_data$taxon <- as.factor(GG_model_data$taxon) # converts taxon into a factor
+table(GG_model_data$taxon) # counts the number of datapoints for each tree species
+
+# filters levels with a sufficient number of datapoints
+GG_model_data <- GG_model_data %>%
+  group_by(taxon) %>%
+  filter(n() > 50) %>%
+  ungroup()
+
+GG_model_data$taxon <- droplevels(GG_model_data$taxon) # removes the levels of taxon that have no data
+levels(GG_model_data$taxon) # shows the levels of taxon
+```
+
+## Creating the model
+Note: For simplicity 1) we are not considering the stemDiameterPointOfMeasurement; 2) we are not running any model selection and validation. But we really should!
+```{r}
+model <- glm(stemHeight_metre ~ stemDiameter_centimetre * taxon, data = GG_model_data, family = gaussian()) # creates a generalized linear model
+summary(model) # displays the summary of the model
+anova(model) # displays the summary of the model
+
+# Create a grid of values for the explanatory variables
+new_data <- expand.grid(
+  stemDiameter_centimetre = seq(min(GG_model_data$stemDiameter_centimetre), max(GG_model_data$stemDiameter_centimetre), length.out = 100),
+  taxon = levels(GG_model_data$taxon)
+)
+
+new_data$stemHeight_metre <- predict(model, newdata = new_data) # generates model predictions
+
+ggplot(GG_model_data, aes(x = stemDiameter_centimetre, y = stemHeight_metre, color = taxon)) +
+  # creates scatter plot of observed data
+  geom_point(alpha = 0.6) +  
+  # adds prediction lines
+  geom_line(data = new_data, aes(y = stemHeight_metre), linewidth = 1 ) +  
+  # modifies graph appearance
+  labs(color = "Tree species") +
+  theme_minimal() +
+  ggtitle("GLM with Interaction: Predicted Values") +
+  xlab("Stem diameter (cm)") +
+  ylab("Stem height (m)")
+```
